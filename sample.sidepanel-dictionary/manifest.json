@@ -1,8 +1,8 @@
 {
-  "name": "Dictionary side panel",
+  "name": "Security Information Panel",
   "version": "0.1",
   "manifest_version": 3,
-  "description": "Provides definitions in the side panel.",
+  "description": "Displays certificate, privacy, and security information in the side panel.",
   "background": {
     "service_worker": "service-worker.js"
   },
@@ -13,5 +13,27 @@
   "side_panel": {
     "default_path": "sidepanel.html"
   },
-  "permissions": ["sidePanel", "contextMenus", "storage"]
+  "permissions": [
+    "sidePanel",
+    "contextMenus",
+    "storage",
+    "tabs",
+    "cookies",
+    "webRequest",
+    "webNavigation"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["api-monitor.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
 }

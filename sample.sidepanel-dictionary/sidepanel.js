@@ -1,49 +1,57 @@
-// Copyright 2023 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Security Information Side Panel
+// Displays security information for the current tab
 
-const words = {
-  extensions:
-    'Extensions are software programs, built on web technologies (such as HTML, CSS, and JavaScript) that enable users to customize the Chrome browsing experience.',
-  popup:
-    "A UI surface which appears when an extension's action icon is clicked."
-};
+// Load and display security information
+async function loadSecurityInfo() {
+  try {
+    showLoading();
 
-chrome.storage.session.get('lastWord', ({ lastWord }) => {
-  updateDefinition(lastWord);
-});
+    // Get the current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-chrome.storage.session.onChanged.addListener((changes) => {
-  const lastWordChange = changes['lastWord'];
+    if (!tab || !tab.id) {
+      showError('No active tab found');
+      return;
+    }
 
-  if (!lastWordChange) {
-    return;
+    // Request security info from background service worker
+    const response = await chrome.runtime.sendMessage({
+      action: 'getSecurityInfo',
+      tabId: tab.id
+    });
+
+    if (response.error) {
+      showError(response.error);
+    } else {
+      renderSecurityInfo(response);
+    }
+
+  } catch (error) {
+    console.error('Error loading security info:', error);
+    showError('Failed to load security information: ' + error.message);
   }
+}
 
-  updateDefinition(lastWordChange.newValue);
+// Listen for tab updates to refresh security info
+chrome.tabs.onActivated.addListener(() => {
+  loadSecurityInfo();
 });
 
-function updateDefinition(word) {
-  // If the side panel was opened manually, rather than using the context menu,
-  // we might not have a word to show the definition for.
-  if (!word) return;
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // Only refresh when the page has finished loading
+  if (changeInfo.status === 'complete') {
+    loadSecurityInfo();
+  }
+});
 
-  // Hide instructions.
-  document.body.querySelector('#select-a-word').style.display = 'none';
+// Listen for messages from service worker
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'refreshSecurityInfo') {
+    loadSecurityInfo();
+  }
+});
 
-  // Show word and definition.
-  document.body.querySelector('#definition-word').innerText = word;
-  document.body.querySelector('#definition-text').innerText =
-    words[word.toLowerCase()] ??
-    `Unknown word! Supported words: ${Object.keys(words).join(', ')}`;
-}
+// Initial load when side panel opens
+document.addEventListener('DOMContentLoaded', () => {
+  loadSecurityInfo();
+});
