@@ -396,6 +396,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 
+  if (message.action === 'getSecurityInfoForCurrentTab') {
+    // Get the tab ID from the sender
+    const tabId = sender.tab?.id;
+    if (tabId) {
+      getSecurityInfo(tabId)
+        .then(securityInfo => sendResponse(securityInfo))
+        .catch(error => sendResponse({ error: error.message }));
+      return true; // Keep channel open for async response
+    } else {
+      sendResponse({ error: 'No tab ID available' });
+    }
+  }
+
+  if (message.action === 'openSecurityPanel') {
+    chrome.sidePanel.open({ tabId: sender.tab.id });
+    sendResponse({ success: true });
+  }
+
   if (message.action === 'apiAccessDetected') {
     // Get tab ID from sender
     const tabId = sender.tab?.id;

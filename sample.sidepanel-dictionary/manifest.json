@@ -34,6 +34,18 @@
       "matches": ["<all_urls>"],
       "js": ["content-bridge.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["banner.js"],
+      "css": ["banner.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["banner.html"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
