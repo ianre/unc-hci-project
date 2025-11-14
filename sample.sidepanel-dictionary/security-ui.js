@@ -5,9 +5,7 @@
 function renderSecurityInfo(securityData) {
   // Handle errors
   if (securityData.error) {
-    document.getElementById('security-content').innerHTML = `
-      <p style="color: red;">${securityData.error}</p>
-    `;
+    showError(securityData.error);
     return;
   }
 
@@ -17,162 +15,308 @@ function renderSecurityInfo(securityData) {
   // Update the DOM
   document.getElementById('security-content').innerHTML = `
     ${securityHtml}
-    <hr />
-    <p style="font-size: 0.9em; color: #666;">Last updated: ${securityData.timestamp}</p>
+    <div class="metadata">Last updated: ${securityData.timestamp}</div>
   `;
 }
 
-// Build combined security section
+// Build combined security section with expandable sections
 function buildSecuritySection(securityData) {
-  const warnings = securityData.warnings;
-  const certInfo = securityData.certificate;
-  const privacyInfo = securityData.privacy;
-  const collectors = securityData.collectors;
-  const apiAccess = securityData.apiAccess;
+  const sections = [
+    buildSecurityAlertsSection(securityData.warnings),
+    buildSensitiveInfoSection(securityData.apiAccess),
+    buildConnectionSecuritySection(securityData.certificate, securityData.collectors),
+    buildPrivacyAnalysisSection(securityData.privacy),
+    buildThirdPartyCollectorsSection(securityData.collectors)
+  ];
 
-  let html = '<h2>Security & Privacy Information</h2>';
+  return `
+    <h2>Security & Privacy Information</h2>
+    ${sections.join('')}
+  `;
+}
 
-  // Security Alerts
-  html += `<p><strong>Security Alerts:</strong></p>`;
-  const warningsList = warnings.map(warning =>
-    `<p style="margin-left: 20px;">${escapeHtml(warning)}</p>`
-  ).join('');
-  html += warningsList;
+// Helper function to create an expandable section
+function createSection(title, content, openByDefault = false) {
+  return `
+    <details${openByDefault ? ' open' : ''}>
+      <summary>${escapeHtml(title)}</summary>
+      <div class="section-content">
+        ${content}
+      </div>
+    </details>
+  `;
+}
 
-  // Sensitive Information Accessed
-  if (apiAccess) {
-    html += `<p><strong>Sensitive Information Accessed:</strong></p>`;
+// Helper function to create FAQ/help items (nested expandable)
+function createFAQItem(question, answer) {
+  return `
+    <details>
+      <summary>${escapeHtml(question)}</summary>
+      <div class="section-content">
+        <p>${escapeHtml(answer)}</p>
+      </div>
+    </details>
+  `;
+}
 
-    const sensitiveAPIs = [
-      {
-        title: 'Physical Privacy Invasion',
-        items: [
-          { key: 'geolocation', label: 'Geolocation', desc: 'Tracking your physical location' },
-          { key: 'mediaDevices', label: 'Camera/Microphone', desc: 'Checking for recording devices' },
-          { key: 'screenCapture', label: 'Screen Recording', desc: 'Can record your entire screen' }
-        ]
-      },
-      {
-        title: 'Data Theft Attempts',
-        items: [
-          { key: 'clipboardRead', label: 'Clipboard Reading', desc: 'Stealing copied passwords/data' },
-          { key: 'credentials', label: 'Password Access', desc: 'Accessing browser-saved passwords' }
-        ]
-      },
-      {
-        title: 'Browsing History Tracking',
-        items: [
-          { key: 'referrer', label: 'Previous Website', desc: 'Accessing where you came from' }
-        ]
-      },
-      {
-        title: 'Device Fingerprinting',
-        desc: 'Creating a unique ID to track you without cookies',
-        items: [
-          { key: 'canvas', label: 'Canvas Fingerprinting' },
-          { key: 'webgl', label: 'WebGL Fingerprinting' },
-          { key: 'audioContext', label: 'Audio Fingerprinting' },
-          { key: 'fonts', label: 'Font Detection' }
-        ]
-      },
-      {
-        title: 'Persistent Tracking',
-        desc: 'Storing data to track you across sessions (like hidden cookies)',
-        items: [
-          { key: 'localStorage', label: 'Local Storage' },
-          { key: 'indexedDB', label: 'IndexedDB' }
-        ]
-      },
-      {
-        title: 'Network Privacy Leak',
-        items: [
-          { key: 'webrtc', label: 'WebRTC', desc: 'Can reveal your real IP (bypasses VPN)' }
-        ]
-      },
-      {
-        title: 'Spam & Phishing',
-        items: [
-          { key: 'notifications', label: 'Notification Requests', desc: 'Push notifications (often spam)' }
-        ]
-      }
-    ];
+// Helper function to create multiple FAQ items
+function createFAQSection(faqs) {
+  if (!faqs || faqs.length === 0) return '';
+  return faqs.map(faq => createFAQItem(faq.question, faq.answer)).join('');
+}
 
-    let accessDetected = false;
-    sensitiveAPIs.forEach(category => {
-      const accessed = category.items.filter(item => apiAccess[item.key]);
-      if (accessed.length > 0) {
-        accessDetected = true;
-        html += `<p style="margin-left: 20px;"><strong>${category.title}</strong>`;
-        if (category.desc) {
-          html += ` - ${category.desc}`;
-        }
-        html += `:</p>`;
-        accessed.forEach(item => {
-          html += `<p style="margin-left: 40px;">- ${item.label}`;
-          if (item.desc) {
-            html += ` (${item.desc})`;
-          }
-          html += `</p>`;
-        });
-      }
-    });
-
-    if (!accessDetected) {
-      html += `<p style="margin-left: 20px;">No sensitive information accessed</p>`;
+// Build Security Alerts section
+function buildSecurityAlertsSection(warnings) {
+  const faqs = [
+    {
+      question: 'What are security alerts?',
+      answer: 'Security alerts warn you about potential security issues with the website, such as invalid certificates, insecure connections, or suspicious behavior.'
+    },
+    {
+      question: 'What should I do if I see alerts?',
+      answer: 'If you see security alerts, be cautious about entering sensitive information. Consider leaving the website if the alerts indicate serious security problems.'
     }
+  ];
+
+  let content = '';
+
+  if (!warnings || warnings.length === 0) {
+    content = '<p>No security alerts detected</p>';
+  } else {
+    const warningsList = warnings
+      .map(warning => `<p class="item-list-item">${escapeHtml(warning)}</p>`)
+      .join('');
+    content = `<div class="item-list">${warningsList}</div>`;
   }
 
-  // Certificate/Connection Details
-  html += `<p><strong>Connection Security:</strong></p>`;
-  html += `<p style="margin-left: 20px;">Domain: ${escapeHtml(collectors?.firstParty || certInfo.domain)}</p>`;
-  html += `<p style="margin-left: 20px;">Protocol: ${certInfo.protocol.toUpperCase()}</p>`;
-  html += `<p style="margin-left: 20px;">Encryption: ${certInfo.isSecure ? 'Enabled (HTTPS)' : 'Not Encrypted (HTTP)'}</p>`;
-  html += `<p style="margin-left: 20px;">Status: ${certInfo.status}</p>`;
+  content += createFAQSection(faqs);
 
-  // Privacy Details
-  html += `<p><strong>Privacy Analysis:</strong></p>`;
-  html += `<p style="margin-left: 20px;">Total Cookies: ${privacyInfo.totalCookies}</p>`;
-  html += `<p style="margin-left: 40px;">First-party: ${privacyInfo.firstPartyCookies}</p>`;
-  html += `<p style="margin-left: 40px;">Third-party: ${privacyInfo.thirdPartyCookies}</p>`;
-  html += `<p style="margin-left: 20px;">Third-party Domains Contacted: ${privacyInfo.thirdPartyDomains}</p>`;
-  html += `<p style="margin-left: 20px;">Known Tracker Requests: ${privacyInfo.trackerRequests}</p>`;
+  return createSection('Security Alerts', content, warnings && warnings.length > 0);
+}
 
-  // Third Party Data Collectors
-  if (collectors) {
-    html += `<p><strong>Third-Party Data Collectors:</strong></p>`;
-
-    const collectorCategories = [
-      { key: 'analytics', label: 'Analytics Services' },
-      { key: 'advertising', label: 'Advertising Networks' },
-      { key: 'socialMedia', label: 'Social Media Platforms' },
-      { key: 'tracking', label: 'Tracking & Monitoring' },
-      { key: 'marketing', label: 'Marketing Services' },
-      { key: 'payments', label: 'Payment Processors' },
-      { key: 'cdn', label: 'Content Delivery Networks' },
-      { key: 'other', label: 'Other Third Parties' }
-    ];
-
-    let hasCollectors = false;
-    collectorCategories.forEach(category => {
-      const domains = collectors[category.key];
-      if (domains && domains.length > 0) {
-        hasCollectors = true;
-        html += `<p style="margin-left: 20px;"><strong>${category.label}:</strong> ${domains.length}</p>`;
-        domains.slice(0, 5).forEach(domain => {
-          html += `<p style="margin-left: 40px;">- ${escapeHtml(domain)}</p>`;
-        });
-        if (domains.length > 5) {
-          html += `<p style="margin-left: 40px;">... and ${domains.length - 5} more</p>`;
-        }
-      }
-    });
-
-    if (!hasCollectors) {
-      html += '<p style="margin-left: 20px;">No third-party data collectors detected</p>';
+// Build Sensitive Information Accessed section
+function buildSensitiveInfoSection(apiAccess) {
+  const faqs = [
+    {
+      question: 'Why does this matter?',
+      answer: 'Websites can access various browser features and APIs. Some of these can be used to track you, collect personal information, or invade your privacy. This section shows which sensitive features the website accessed.'
+    },
+    {
+      question: 'Is accessing these features always bad?',
+      answer: 'Not necessarily. Many legitimate websites need to access certain features (e.g., a maps app needs location, a video chat app needs your camera). The concern is when websites access features they don\'t need for their core functionality.'
     }
+  ];
+
+  if (!apiAccess) {
+    return createSection('Sensitive Information Accessed', '<p>No data available</p>' + createFAQSection(faqs));
   }
 
-  return html;
+  const sensitiveAPIs = [
+    {
+      title: 'Physical Privacy Invasion',
+      items: [
+        { key: 'geolocation', label: 'Geolocation', desc: 'Tracking your physical location' },
+        { key: 'mediaDevices', label: 'Camera/Microphone', desc: 'Checking for recording devices' },
+        { key: 'screenCapture', label: 'Screen Recording', desc: 'Can record your entire screen' }
+      ]
+    },
+    {
+      title: 'Data Theft Attempts',
+      items: [
+        { key: 'clipboardRead', label: 'Clipboard Reading', desc: 'Stealing copied passwords/data' },
+        { key: 'credentials', label: 'Password Access', desc: 'Accessing browser-saved passwords' }
+      ]
+    },
+    {
+      title: 'Browsing History Tracking',
+      items: [
+        { key: 'referrer', label: 'Previous Website', desc: 'Accessing where you came from' }
+      ]
+    },
+    {
+      title: 'Device Fingerprinting',
+      desc: 'Creating a unique ID to track you without cookies',
+      items: [
+        { key: 'canvas', label: 'Canvas Fingerprinting' },
+        { key: 'webgl', label: 'WebGL Fingerprinting' },
+        { key: 'audioContext', label: 'Audio Fingerprinting' },
+        { key: 'fonts', label: 'Font Detection' }
+      ]
+    },
+    {
+      title: 'Persistent Tracking',
+      desc: 'Storing data to track you across sessions (like hidden cookies)',
+      items: [
+        { key: 'localStorage', label: 'Local Storage' },
+        { key: 'indexedDB', label: 'IndexedDB' }
+      ]
+    },
+    {
+      title: 'Network Privacy Leak',
+      items: [
+        { key: 'webrtc', label: 'WebRTC', desc: 'Can reveal your real IP (bypasses VPN)' }
+      ]
+    },
+    {
+      title: 'Spam & Phishing',
+      items: [
+        { key: 'notifications', label: 'Notification Requests', desc: 'Push notifications (often spam)' }
+      ]
+    }
+  ];
+
+  let content = '';
+  let accessDetected = false;
+
+  sensitiveAPIs.forEach(category => {
+    const accessed = category.items.filter(item => apiAccess[item.key]);
+    if (accessed.length > 0) {
+      accessDetected = true;
+      content += `<p class="item-category">${category.title}`;
+      if (category.desc) {
+        content += ` - ${category.desc}`;
+      }
+      content += `</p>`;
+      content += '<div class="item-list">';
+      accessed.forEach(item => {
+        content += `<p class="item-list-item">${item.label}`;
+        if (item.desc) {
+          content += ` (${item.desc})`;
+        }
+        content += `</p>`;
+      });
+      content += '</div>';
+    }
+  });
+
+  if (!accessDetected) {
+    content = '<p>No sensitive information accessed</p>';
+  }
+
+  content += createFAQSection(faqs);
+
+  return createSection('Sensitive Information Accessed', content);
+}
+
+// Build Connection Security section
+function buildConnectionSecuritySection(certInfo, collectors) {
+  const domain = collectors?.firstParty || certInfo.domain;
+  const isSecure = certInfo.isSecure;
+
+  const faqs = [
+    {
+      question: 'What is HTTPS encryption?',
+      answer: 'HTTPS encrypts the data sent between your browser and the website, preventing others from intercepting and reading your information. Always look for HTTPS when entering sensitive data like passwords or credit card numbers.'
+    },
+    {
+      question: 'What does the connection status mean?',
+      answer: 'The status indicates whether the website\'s security certificate is valid and trusted. A secure status means the certificate was verified by a trusted authority and hasn\'t expired.'
+    }
+  ];
+
+  const content = `
+    <p><strong>Domain:</strong> ${escapeHtml(domain)}</p>
+    <p><strong>Protocol:</strong> ${certInfo.protocol.toUpperCase()}</p>
+    <p><strong>Encryption:</strong> <span class="${isSecure ? 'status-secure' : 'status-error'}">${isSecure ? 'Enabled (HTTPS)' : 'Not Encrypted (HTTP)'}</span></p>
+    <p><strong>Status:</strong> ${escapeHtml(certInfo.status)}</p>
+    ${createFAQSection(faqs)}
+  `;
+
+  return createSection('Connection Security', content);
+}
+
+// Build Privacy Analysis section
+function buildPrivacyAnalysisSection(privacyInfo) {
+  const thirdPartyCookies = privacyInfo.thirdPartyCookies;
+  const trackerRequests = privacyInfo.trackerRequests;
+
+  const faqs = [
+    {
+      question: 'What are cookies?',
+      answer: 'Cookies are small pieces of data stored in your browser. First-party cookies are from the website you\'re visiting, while third-party cookies are from other domains (often used for tracking and advertising).'
+    },
+    {
+      question: 'Why are third-party trackers a concern?',
+      answer: 'Third-party trackers can follow you across multiple websites, building a profile of your browsing habits, interests, and personal information without your explicit consent.'
+    },
+    {
+      question: 'What are third-party domains?',
+      answer: 'These are external websites that the current page connects to, often for analytics, advertisements, or content delivery. Each connection can potentially share information about your visit.'
+    }
+  ];
+
+  const content = `
+    <p><strong>Total Cookies:</strong> ${privacyInfo.totalCookies}</p>
+    <div class="item-list">
+      <p class="item-list-item">First-party: ${privacyInfo.firstPartyCookies}</p>
+      <p class="item-list-item ${thirdPartyCookies > 0 ? 'status-warning' : ''}">Third-party: ${thirdPartyCookies}</p>
+    </div>
+    <p><strong>Third-party Domains Contacted:</strong> ${privacyInfo.thirdPartyDomains}</p>
+    <p><strong>Known Tracker Requests:</strong> <span class="${trackerRequests > 0 ? 'status-warning' : 'status-secure'}">${trackerRequests}</span></p>
+    ${createFAQSection(faqs)}
+  `;
+
+  return createSection('Privacy Analysis', content);
+}
+
+// Build Third-Party Data Collectors section
+function buildThirdPartyCollectorsSection(collectors) {
+  const faqs = [
+    {
+      question: 'What are third-party data collectors?',
+      answer: 'These are external companies and services that collect information about your visit to this website. They include analytics services, advertising networks, and social media platforms.'
+    },
+    {
+      question: 'Why do websites use these services?',
+      answer: 'Websites use third-party services for various purposes: analytics to understand visitor behavior, advertising to generate revenue, CDNs to deliver content faster, and payment processors to handle transactions.'
+    },
+    {
+      question: 'How can I protect my privacy?',
+      answer: 'You can use browser privacy settings, ad blockers, tracking protection features, or privacy-focused browser extensions to limit third-party data collection. Also consider using privacy-focused browsers.'
+    }
+  ];
+
+  if (!collectors) {
+    return createSection('Third-Party Data Collectors', '<p>No data available</p>' + createFAQSection(faqs));
+  }
+
+  const collectorCategories = [
+    { key: 'analytics', label: 'Analytics Services' },
+    { key: 'advertising', label: 'Advertising Networks' },
+    { key: 'socialMedia', label: 'Social Media Platforms' },
+    { key: 'tracking', label: 'Tracking & Monitoring' },
+    { key: 'marketing', label: 'Marketing Services' },
+    { key: 'payments', label: 'Payment Processors' },
+    { key: 'cdn', label: 'Content Delivery Networks' },
+    { key: 'other', label: 'Other Third Parties' }
+  ];
+
+  let content = '';
+  let hasCollectors = false;
+
+  collectorCategories.forEach(category => {
+    const domains = collectors[category.key];
+    if (domains && domains.length > 0) {
+      hasCollectors = true;
+      content += `<p class="item-category">${category.label}: ${domains.length}</p>`;
+      content += '<div class="item-list">';
+      domains.slice(0, 5).forEach(domain => {
+        content += `<p class="item-list-item">${escapeHtml(domain)}</p>`;
+      });
+      if (domains.length > 5) {
+        content += `<p class="item-list-item">... and ${domains.length - 5} more</p>`;
+      }
+      content += '</div>';
+    }
+  });
+
+  if (!hasCollectors) {
+    content = '<p>No third-party data collectors detected</p>';
+  }
+
+  content += createFAQSection(faqs);
+
+  return createSection('Third-Party Data Collectors', content);
 }
 
 // Escape HTML to prevent XSS
@@ -190,13 +334,13 @@ function escapeHtml(unsafe) {
 // Show loading state
 function showLoading() {
   document.getElementById('security-content').innerHTML = `
-    <p>Loading security information...</p>
+    <p class="loading">Loading security information...</p>
   `;
 }
 
 // Show error message
 function showError(message) {
   document.getElementById('security-content').innerHTML = `
-    <p style="color: red;">Error: ${escapeHtml(message)}</p>
+    <p class="error">Error: ${escapeHtml(message)}</p>
   `;
 }
