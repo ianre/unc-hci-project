@@ -21,8 +21,16 @@ function renderSecurityInfo(securityData) {
 
 // Build combined security section with expandable sections
 function buildSecuritySection(securityData) {
-  const sections = [
-    buildSecurityAlertsSection(securityData.warnings),
+  // Security Alerts is always visible (not expandable) - matches banner exactly
+  const alertsSection = buildSecurityAlertsSection(
+    securityData.warnings,
+    securityData.certificate,
+    securityData.privacy,
+    securityData.apiAccess
+  );
+
+  // Other sections are expandable
+  const expandableSections = [
     buildSensitiveInfoSection(securityData.apiAccess),
     buildConnectionSecuritySection(securityData.certificate, securityData.collectors),
     buildPrivacyAnalysisSection(securityData.privacy),
@@ -31,15 +39,23 @@ function buildSecuritySection(securityData) {
 
   return `
     <h2>Security & Privacy Information</h2>
-    ${sections.join('')}
+    ${alertsSection}
+    ${expandableSections.join('')}
   `;
 }
 
 // Helper function to create an expandable section
-function createSection(title, content, openByDefault = false) {
+// riskLevel: 'safe', 'moderate', 'high'
+function createSection(title, content, openByDefault = false, riskLevel = 'safe') {
+  const riskClass = `risk-${riskLevel}`;
   return `
     <details${openByDefault ? ' open' : ''}>
-      <summary>${escapeHtml(title)}</summary>
+      <summary>
+        <span class="summary-title">
+          <span class="risk-indicator ${riskClass}"></span>
+          ${escapeHtml(title)}
+        </span>
+      </summary>
       <div class="section-content">
         ${content}
       </div>
@@ -65,33 +81,98 @@ function createFAQSection(faqs) {
   return faqs.map(faq => createFAQItem(faq.question, faq.answer)).join('');
 }
 
-// Build Security Alerts section
-function buildSecurityAlertsSection(warnings) {
-  const faqs = [
-    {
-      question: 'What are security alerts?',
-      answer: 'Security alerts warn you about potential security issues with the website, such as invalid certificates, insecure connections, or suspicious behavior.'
-    },
-    {
-      question: 'What should I do if I see alerts?',
-      answer: 'If you see security alerts, be cautious about entering sensitive information. Consider leaving the website if the alerts indicate serious security problems.'
-    }
-  ];
+// Build Security Alerts section (always visible, not expandable)
+// Matches banner logic exactly from banner.js lines 99-158
+function buildSecurityAlertsSection(warnings, certificate, privacy, apiAccess) {
+  let status = 'secure';
+  let title = 'Secure Connection';
+  let details = 'Minimal tracking detected';
+  let riskLevel = 'safe';
 
-  let content = '';
-
-  if (!warnings || warnings.length === 0) {
-    content = '<p>No security alerts detected</p>';
-  } else {
-    const warningsList = warnings
-      .map(warning => `<p class="item-list-item">${escapeHtml(warning)}</p>`)
-      .join('');
-    content = `<div class="item-list">${warningsList}</div>`;
+  // Exactly matching banner.js logic (lines 110-139)
+  if (certificate && !certificate.isSecure) {
+    status = 'danger';
+    title = 'Insecure Connection';
+    details = 'Not using HTTPS - data may be intercepted';
+    riskLevel = 'high';
+  }
+  else if (privacy && (privacy.trackerRequests > 10 || privacy.thirdPartyCookies > 15)) {
+    status = 'danger';
+    title = 'High Privacy Risk';
+    details = `Heavy tracking: ${privacy.trackerRequests || 0} trackers`;
+    riskLevel = 'high';
+  }
+  else if (privacy && (privacy.trackerRequests > 5 || privacy.thirdPartyCookies > 5)) {
+    status = 'warning';
+    title = 'Privacy Concerns';
+    details = `Tracking detected: ${privacy.trackerRequests || 0} trackers`;
+    riskLevel = 'moderate';
+  }
+  else if (certificate && certificate.isSecure) {
+    status = 'secure';
+    title = 'Secure Connection';
+    details = 'Minimal tracking detected';
+    riskLevel = 'safe';
   }
 
-  content += createFAQSection(faqs);
+  // Add API access warnings (matching banner.js lines 142-155)
+  if (apiAccess) {
+    const activeRisks = [];
+    if (apiAccess.clipboardRead) activeRisks.push('clipboard');
+    if (apiAccess.screenCapture) activeRisks.push('screen recording');
+    if (apiAccess.geolocation) activeRisks.push('location');
 
-  return createSection('Security Alerts', content, warnings && warnings.length > 0);
+    if (activeRisks.length > 0) {
+      details += ` - ${activeRisks.join(', ')} access detected`;
+      if (status === 'secure') {
+        status = 'warning';
+        riskLevel = 'moderate';  // Update risk level to moderate (orange)
+      }
+    }
+  }
+
+  const riskClass = `risk-${riskLevel}`;
+
+  // Build the overall message (matching banner display)
+  const messageHtml = `
+    <div class="alert-summary">
+      <div class="alert-title">${escapeHtml(title)}</div>
+      <div class="alert-details">${escapeHtml(details)}</div>
+    </div>
+  `;
+
+  // Conditional FAQs - only show if there are warnings (moderate or high risk)
+  let faqsHtml = '';
+  if (riskLevel === 'high' || riskLevel === 'moderate') {
+    const faqs = [
+      {
+        question: 'Why does this matter?',
+        answer: 'These alerts help you protect your personal information, passwords, and financial data from being stolen or tracked. They flag serious security problems that could put you at risk.'
+      },
+      {
+        question: 'What should I do?',
+        answer: 'If you see security warnings, avoid entering passwords, credit card numbers, or personal information on the website. For serious issues like "Insecure Connection", it\'s best to leave the site entirely.'
+      },
+      {
+        question: 'Can I trust this website?',
+        answer: 'It depends. "Insecure Connection" (no HTTPS) is a serious red flag - never enter sensitive data. Tracking warnings mean the site is monitoring you, which is common but invasive. Use your judgment based on what you\'re doing.'
+      }
+    ];
+    faqsHtml = createFAQSection(faqs);
+  }
+
+  // Return non-expandable section (no title, just indicator + message)
+  return `
+    <div class="security-alerts-section ${riskClass}">
+      <div class="alerts-header">
+        <span class="risk-indicator ${riskClass}"></span>
+      </div>
+      <div class="alerts-content">
+        ${messageHtml}
+        ${faqsHtml}
+      </div>
+    </div>
+  `;
 }
 
 // Build Sensitive Information Accessed section
@@ -108,7 +189,7 @@ function buildSensitiveInfoSection(apiAccess) {
   ];
 
   if (!apiAccess) {
-    return createSection('Sensitive Information Accessed', '<p>No data available</p>' + createFAQSection(faqs));
+    return createSection('Sensitive Information Accessed', '<p>No data available</p>' + createFAQSection(faqs), false, 'safe');
   }
 
   const sensitiveAPIs = [
@@ -189,13 +270,21 @@ function buildSensitiveInfoSection(apiAccess) {
     }
   });
 
+  // Risk level based on banner logic (banner.js lines 142-154)
+  // Banner only checks: clipboardRead, screenCapture, geolocation
+  // If any present, upgrades from secure to warning (moderate)
+  let riskLevel = 'safe';
+  if (apiAccess.clipboardRead || apiAccess.screenCapture || apiAccess.geolocation) {
+    riskLevel = 'moderate';
+  }
+
   if (!accessDetected) {
     content = '<p>No sensitive information accessed</p>';
   }
 
   content += createFAQSection(faqs);
 
-  return createSection('Sensitive Information Accessed', content);
+  return createSection('Sensitive Information Accessed', content, false, riskLevel);
 }
 
 // Build Connection Security section
@@ -214,6 +303,8 @@ function buildConnectionSecuritySection(certInfo, collectors) {
     }
   ];
 
+  const riskLevel = isSecure ? 'safe' : 'high';
+
   const content = `
     <p><strong>Domain:</strong> ${escapeHtml(domain)}</p>
     <p><strong>Protocol:</strong> ${certInfo.protocol.toUpperCase()}</p>
@@ -222,7 +313,7 @@ function buildConnectionSecuritySection(certInfo, collectors) {
     ${createFAQSection(faqs)}
   `;
 
-  return createSection('Connection Security', content);
+  return createSection('Connection Security', content, false, riskLevel);
 }
 
 // Build Privacy Analysis section
@@ -245,6 +336,14 @@ function buildPrivacyAnalysisSection(privacyInfo) {
     }
   ];
 
+  // Determine risk level based on tracking metrics (same as banner.js)
+  let riskLevel = 'safe';
+  if (trackerRequests > 10 || thirdPartyCookies > 15) {
+    riskLevel = 'high';
+  } else if (trackerRequests > 5 || thirdPartyCookies > 5) {
+    riskLevel = 'moderate';
+  }
+
   const content = `
     <p><strong>Total Cookies:</strong> ${privacyInfo.totalCookies}</p>
     <div class="item-list">
@@ -256,7 +355,7 @@ function buildPrivacyAnalysisSection(privacyInfo) {
     ${createFAQSection(faqs)}
   `;
 
-  return createSection('Privacy Analysis', content);
+  return createSection('Privacy Analysis', content, false, riskLevel);
 }
 
 // Build Third-Party Data Collectors section
@@ -277,7 +376,7 @@ function buildThirdPartyCollectorsSection(collectors) {
   ];
 
   if (!collectors) {
-    return createSection('Third-Party Data Collectors', '<p>No data available</p>' + createFAQSection(faqs));
+    return createSection('Third-Party Data Collectors', '<p>No data available</p>' + createFAQSection(faqs), false, 'safe');
   }
 
   const collectorCategories = [
@@ -316,7 +415,20 @@ function buildThirdPartyCollectorsSection(collectors) {
 
   content += createFAQSection(faqs);
 
-  return createSection('Third-Party Data Collectors', content);
+  // Risk level based on presence of advertising/tracking collectors
+  // Banner doesn't evaluate collectors directly, but these contribute to trackerRequests
+  // Keep it simple: moderate if advertising or tracking present, safe otherwise
+  let riskLevel = 'safe';
+  if (collectors) {
+    const hasAdvertising = collectors.advertising && collectors.advertising.length > 0;
+    const hasTracking = collectors.tracking && collectors.tracking.length > 0;
+
+    if (hasAdvertising || hasTracking) {
+      riskLevel = 'moderate';
+    }
+  }
+
+  return createSection('Third-Party Data Collectors', content, false, riskLevel);
 }
 
 // Escape HTML to prevent XSS
