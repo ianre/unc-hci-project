@@ -32,12 +32,12 @@ function buildSecuritySection(securityData) {
 
   let html = '<h2>Security & Privacy Information</h2>';
 
-  // Certificate/Connection Details
-  html += `<p><strong>Connection Security:</strong></p>`;
-  html += `<p style="margin-left: 20px;">Domain: ${escapeHtml(collectors?.firstParty || certInfo.domain)}</p>`;
-  html += `<p style="margin-left: 20px;">Protocol: ${certInfo.protocol.toUpperCase()}</p>`;
-  html += `<p style="margin-left: 20px;">Encryption: ${certInfo.isSecure ? 'Enabled (HTTPS)' : 'Not Encrypted (HTTP)'}</p>`;
-  html += `<p style="margin-left: 20px;">Status: ${certInfo.status}</p>`;
+  // Security Alerts
+  html += `<p><strong>Security Alerts:</strong></p>`;
+  const warningsList = warnings.map(warning =>
+    `<p style="margin-left: 20px;">${escapeHtml(warning)}</p>`
+  ).join('');
+  html += warningsList;
 
   // Sensitive Information Accessed
   if (apiAccess) {
@@ -122,6 +122,13 @@ function buildSecuritySection(securityData) {
     }
   }
 
+  // Certificate/Connection Details
+  html += `<p><strong>Connection Security:</strong></p>`;
+  html += `<p style="margin-left: 20px;">Domain: ${escapeHtml(collectors?.firstParty || certInfo.domain)}</p>`;
+  html += `<p style="margin-left: 20px;">Protocol: ${certInfo.protocol.toUpperCase()}</p>`;
+  html += `<p style="margin-left: 20px;">Encryption: ${certInfo.isSecure ? 'Enabled (HTTPS)' : 'Not Encrypted (HTTP)'}</p>`;
+  html += `<p style="margin-left: 20px;">Status: ${certInfo.status}</p>`;
+
   // Privacy Details
   html += `<p><strong>Privacy Analysis:</strong></p>`;
   html += `<p style="margin-left: 20px;">Total Cookies: ${privacyInfo.totalCookies}</p>`;
@@ -164,13 +171,6 @@ function buildSecuritySection(securityData) {
       html += '<p style="margin-left: 20px;">No third-party data collectors detected</p>';
     }
   }
-
-  // Security Alerts
-  html += `<p><strong>Security Alerts:</strong></p>`;
-  const warningsList = warnings.map(warning =>
-    `<p style="margin-left: 20px;">${escapeHtml(warning)}</p>`
-  ).join('');
-  html += warningsList;
 
   return html;
 }

@@ -111,13 +111,13 @@ function evaluateSecurityStatus(data) {
         status = 'danger';
         title = 'Insecure Connection';
         details = 'Not using HTTPS - data may be intercepted';
-        icon = '🔴';
+        icon = '✋';
     } 
     else if (privacy && (privacy.trackerRequests > 10 || privacy.thirdPartyCookies > 15)) {
         status = 'danger';
         title = 'High Privacy Risk';
         details = `Heavy tracking: ${privacy.trackerRequests || 0} trackers`;
-        icon = '🔴';
+        icon = '✋';
     }
     else if (privacy && (privacy.trackerRequests > 5 || privacy.thirdPartyCookies > 5)) {
         status = 'warning';
