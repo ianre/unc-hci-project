@@ -1,0 +1,254 @@
+/* Security Information Side Panel Styles */
+
+/* Global Styles */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 16px;
+  color: #333;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 16px 0;
+}
+
+/* Security Alerts Section (Always Visible) */
+.security-alerts-section {
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.alerts-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0;
+  padding-top: 3px;
+}
+
+.alerts-content {
+  margin-left: 22px;
+}
+
+.alert-summary {
+  margin: 0;
+}
+
+.alert-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: #222;
+}
+
+.alert-details {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* FAQ items within Security Alerts section */
+.alerts-content details {
+  margin-top: 16px;
+}
+
+.alerts-content details:first-of-type {
+  margin-top: 16px;
+}
+
+/* Expandable Section Styles */
+details {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+details[open] {
+  background: #ffffff;
+}
+
+summary {
+  cursor: pointer;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Remove default marker */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Risk Level Indicators */
+.risk-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+.risk-safe {
+  background-color: #4caf50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.risk-moderate {
+  background-color: #ff9800;
+  box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
+}
+
+.risk-high {
+  background-color: #f44336;
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+}
+
+/* Summary title wrapper */
+.summary-title {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+/* Custom expand/collapse indicator */
+summary::after {
+  content: '+';
+  font-size: 18px;
+  font-weight: 400;
+  color: #666;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+details[open] summary::after {
+  content: '-';
+}
+
+summary:hover {
+  background: #f0f0f0;
+}
+
+details[open] summary:hover {
+  background: #f8f9fa;
+}
+
+/* Section Content */
+.section-content {
+  padding: 0 16px 16px 16px;
+}
+
+/* Nested Expandable Items (FAQ/Help) */
+.section-content details {
+  background: #f5f5f5;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+.section-content details[open] {
+  background: #fafafa;
+}
+
+.section-content summary {
+  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.section-content summary::after {
+  font-size: 16px;
+}
+
+.section-content .section-content {
+  padding: 0 12px 12px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #555;
+}
+
+/* Content Formatting */
+.section-content p {
+  margin: 8px 0;
+}
+
+.section-content strong {
+  font-weight: 600;
+  color: #222;
+}
+
+/* Nested Lists */
+.item-category {
+  margin: 12px 0 8px 0;
+  font-weight: 600;
+  color: #444;
+}
+
+.item-list {
+  margin: 4px 0 12px 16px;
+}
+
+.item-list-item {
+  margin: 4px 0;
+  color: #555;
+}
+
+/* Status Indicators */
+.status-secure {
+  color: #0f8c0f;
+}
+
+.status-warning {
+  color: #f57c00;
+}
+
+.status-error {
+  color: #d32f2f;
+}
+
+/* Metadata */
+.metadata {
+  font-size: 12px;
+  color: #666;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Loading and Error States */
+.loading, .error {
+  padding: 16px;
+  text-align: center;
+}
+
+.error {
+  color: #d32f2f;
+}

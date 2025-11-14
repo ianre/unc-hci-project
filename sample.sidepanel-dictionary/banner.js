@@ -144,9 +144,9 @@ function evaluateSecurityStatus(data) {
         if (apiAccess.clipboardRead) activeRisks.push('clipboard');
         if (apiAccess.screenCapture) activeRisks.push('screen recording');
         if (apiAccess.geolocation) activeRisks.push('location');
-        
+
         if (activeRisks.length > 0) {
-            details += ` • ${activeRisks.join(', ')} access detected`;
+            details += ` - ${activeRisks.join(', ')} access detected`;
             if (status === 'secure') {
                 status = 'warning';
                 icon = '⚠️';
