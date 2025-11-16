@@ -333,27 +333,27 @@ async function getSecurityInfo(tabId) {
       thirdPartyDomains: trackingData.domains.size
     };
 
-    // Security warnings
+    // Security warnings - user-friendly messages
     const warnings = [];
 
     if (!certificateInfo.isSecure) {
-      warnings.push('[WARNING] Connection is not encrypted (HTTP)');
+      warnings.push('This website is not secure - your passwords, credit card numbers, and personal information can be stolen by hackers.');
     }
 
     if (trackingData.mixedContent) {
-      warnings.push('[WARNING] Mixed content detected (HTTPS page loading HTTP resources)');
+      warnings.push('Some content on this secure page is being loaded insecurely, creating a vulnerability that could expose your data.');
     }
 
     if (thirdPartyCookies.length > 10) {
-      warnings.push('[WARNING] High number of third-party cookies (' + thirdPartyCookies.length + ')');
+      warnings.push('This website is sharing your activity with ' + thirdPartyCookies.length + ' external companies that can track you across the internet.');
     }
 
     if (trackingData.trackerRequests > 5) {
-      warnings.push('[WARNING] Multiple tracking requests detected (' + trackingData.trackerRequests + ')');
+      warnings.push('This website is actively tracking your behavior using ' + trackingData.trackerRequests + ' different tracking tools to build a profile about you.');
     }
 
     if (warnings.length === 0 && certificateInfo.isSecure) {
-      warnings.push('[OK] No major security concerns detected');
+      warnings.push('This website uses strong encryption and shows no major security red flags.');
     }
 
     // Who's collecting data
